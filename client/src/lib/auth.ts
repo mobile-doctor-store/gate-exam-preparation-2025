@@ -3,15 +3,43 @@ export interface User {
   phone: string;
 }
 
-export const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdtYHh2yfc2gMeprEucQcOg0CW5Jxux5kXUPfoRkCymQWGo0A/formResponse';
+// Environment variables for secure configuration
+const getGoogleFormConfig = () => {
+  const formUrl = import.meta.env.VITE_GOOGLE_FORM_URL;
+  const nameFieldId = import.meta.env.VITE_GOOGLE_FORM_NAME_FIELD;
+  const phoneFieldId = import.meta.env.VITE_GOOGLE_FORM_PHONE_FIELD;
+  
+  if (!formUrl || !nameFieldId || !phoneFieldId) {
+    console.warn('Google Form configuration not found in environment variables');
+    return null;
+  }
+  
+  return { formUrl, nameFieldId, phoneFieldId };
+};
 
 export const saveUser = (user: User): void => {
-  localStorage.setItem('gateCSEUser', JSON.stringify(user));
+  // Hash user data for basic privacy
+  const hashedUser = {
+    ...user,
+    phone: btoa(user.phone) // Basic encoding, not encryption
+  };
+  localStorage.setItem('gateCSEUser', JSON.stringify(hashedUser));
 };
 
 export const getUser = (): User | null => {
-  const userData = localStorage.getItem('gateCSEUser');
-  return userData ? JSON.parse(userData) : null;
+  try {
+    const userData = localStorage.getItem('gateCSEUser');
+    if (!userData) return null;
+    
+    const hashedUser = JSON.parse(userData);
+    return {
+      ...hashedUser,
+      phone: atob(hashedUser.phone) // Decode the phone number
+    };
+  } catch (error) {
+    console.error('Failed to retrieve user data:', error);
+    return null;
+  }
 };
 
 export const clearUser = (): void => {
@@ -20,12 +48,17 @@ export const clearUser = (): void => {
 
 export const submitToGoogleForm = async (user: User): Promise<boolean> => {
   try {
-    const formData = new FormData();
-    // These field names would need to be updated based on the actual Google Form structure
-    formData.append('entry.123456789', user.name); // Replace with actual entry ID
-    formData.append('entry.987654321', user.phone); // Replace with actual entry ID
+    const config = getGoogleFormConfig();
+    if (!config) {
+      console.warn('Google Form not configured. Saving user data locally only.');
+      return true; // Still allow local storage to work
+    }
     
-    await fetch(GOOGLE_FORM_URL, {
+    const formData = new FormData();
+    formData.append(config.nameFieldId, user.name);
+    formData.append(config.phoneFieldId, user.phone);
+    
+    await fetch(config.formUrl, {
       method: 'POST',
       body: formData,
       mode: 'no-cors'
@@ -34,6 +67,6 @@ export const submitToGoogleForm = async (user: User): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Failed to submit to Google Form:', error);
-    return false;
+    return true; // Don't fail the login process if form submission fails
   }
 };
