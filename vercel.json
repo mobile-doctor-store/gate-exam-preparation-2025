@@ -6,22 +6,23 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/index.html", // Specifies the main entry point for the static build
-      "use": "@vercel/static-build"
-      // No "config": {"distDir": "dist"} needed here for @vercel/static-build,
-      // as it will infer from Vite's build output.
+      "src": "client/index.html", // Source for the static build
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist" // This means "dist" relative to `client/`, so it expects client/dist
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.ts" // Route API requests to the serverless function
+      "dest": "/server/index.ts"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/$1" // Route all other requests to the client's built static files
+      "dest": "/client/dist/$1" // Ensure this serves from client/dist
     }
   ],
   "installCommand": "npm install",
-  "buildCommand": "npm run build" // This will now run your new combined build script
+  "buildCommand": "npm run build"
 }
