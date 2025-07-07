@@ -6,23 +6,24 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/index.html", // Source for the static build
+      "src": "client/index.html",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist" // This means "dist" relative to `client/`, so it expects client/dist
+        "distDir": "dist/client" // Updated to reflect the new build:client output
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.ts"
+      "dest": "/dist/index.js" // Correctly points to the server build output
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/$1" // Ensure this serves from client/dist
+      "dest": "/dist/client/$1" // Correctly serves static assets from the consolidated 'dist/client'
     }
   ],
   "installCommand": "npm install",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist" // Crucial: Tells Vercel that the overall output folder for deployment is 'dist' at the root
 }
